@@ -267,15 +267,17 @@ const getHomePageData = asyncHandler(async (req, res) => {
     const reviews = [], lists = []
     for(const review_id of review_ids){
         const review = await Review.findById(review_id) 
-        reviews.push(review)
+        if(review) reviews.push(review)
     }
     for(const list_id of list_ids){
         const list = await List.findById(list_id)
-        const fullListItems = await mapGrabMovie(list.list_items)
-        let listObject = list.toObject()
-        listObject['list_items'] = fullListItems
-        listObject['list_items_length'] = list.list_items.length
-        lists.push(listObject)
+        if(list){
+            const fullListItems = await mapGrabMovie(list.list_items)
+            let listObject = list.toObject()
+            listObject['list_items'] = fullListItems
+            listObject['list_items_length'] = list.list_items.length
+            lists.push(listObject)
+        }
     }
     const fullReviews = await mapGrabMovie(reviews)
     resObject['reviews'] = fullReviews

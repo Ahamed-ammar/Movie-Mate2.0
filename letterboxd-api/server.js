@@ -2,6 +2,7 @@ import express from 'express'
 import dotenv from 'dotenv'
 dotenv.config();
 const PORT = process.env.PORT || 5000
+
 import userRoutes from './routes/userRoutes.js';
 import tmdbRoutes from './routes/tmdbRoutes.js';
 import profileRoutes from './routes/profileRoutes.js'
@@ -20,7 +21,7 @@ app.use(express.json())
 app.use(express.urlencoded({extended: true}))
 
 app.use(cors({
-    origin: ['https://arriagada689-letterboxd-clone.xyz', 'http://localhost:5173', 'http://localhost:4173']
+    origin: ['https://arriagada689-letterboxd-clone.xyz', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:4173']
 }));
 
 app.use(cookieParser())
