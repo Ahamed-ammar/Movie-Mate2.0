@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>Testing API Connection</h1>
+    <div id="result"></div>
+    <script>
+        const apiBaseUrl = 'http://localhost:5000/api';
+        
+        fetch(`${apiBaseUrl}/tmdb/home_page`)
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Data:', data);
+                document.getElementById('result').innerHTML = `
+                    <h2>Success!</h2>
+                    <p>Popular Movies: ${data.popular_data?.length || 0}</p>
+                    <p>Trending Movies: ${data.trending_data?.length || 0}</p>
+                    <p>Reviews: ${data.reviews?.length || 0}</p>
+                    <p>Lists: ${data.lists?.length || 0}</p>
+                `;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `
+                    <h2>Error!</h2>
+                    <p>${error.message}</p>
+                `;
+            });
+    </script>
+</body>
+</html>

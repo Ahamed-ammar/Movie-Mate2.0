@@ -53,19 +53,25 @@ const search = asyncHandler(async (req, res) => {
 const getFilms = asyncHandler(async (req, res) => {
     const { type, page } = req.query
     
-    const response = await fetch(`https://api.themoviedb.org/3/movie/${type}?page=${page}`, {
-        headers: {
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${process.env.TMDB_API_KEY}`
+    try {
+        const response = await fetch(`https://api.themoviedb.org/3/movie/${type}?page=${page}`, {
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${process.env.TMDB_API_KEY}`
+            }
+        })
+        if(response.ok){
+            const data = await response.json()
+            res.json(data)
+            return
         }
-    })
-    if(response.ok){
-        const data = await response.json()
-        res.json(data)
-        return
+        res.status(401)
+        res.json('Error fetching movie page data')
+    } catch (error) {
+        console.error('TMDB Fetch Error:', error.message, error.cause)
+        res.status(500)
+        res.json({error: 'Failed to fetch from TMDB', details: error.message})
     }
-    res.status(401)
-    res.json('Error fetching movie page data')
 })
 
 // @desc Get individual movie page details
@@ -227,63 +233,78 @@ const getPersonDetails = asyncHandler(async (req, res) => {
 // route GET api/tmdb/home_page
 // @access Public
 const getHomePageData = asyncHandler(async (req, res) => {
-    const headers = {
-        Accept: 'application/json',
-        Authorization: `Bearer ${process.env.TMDB_API_KEY}`
-    }
-    const resObject = {}
-    const movieSet = new Set()
-
-    const popularResponse = await fetch(`https://api.themoviedb.org/3/movie/popular`, {headers})
-    if(popularResponse.ok){
-        const data = await popularResponse.json()
-        const sortedPopularResults = data.results.sort((a, b) => b.popularity - a.popularity).slice(0, 6)
-        for(const movie of sortedPopularResults){
-            movieSet.add(movie.id)
+    try {
+        const headers = {
+            Accept: 'application/json',
+            Authorization: `Bearer ${process.env.TMDB_API_KEY}`
         }
-        resObject['popular_data'] = sortedPopularResults
-    }
+        const resObject = {}
+        const movieSet = new Set()
 
-    const trendingResponse = await fetch(`https://api.themoviedb.org/3/trending/movie/day`, {headers})
-    if(trendingResponse.ok){
-        const data = await trendingResponse.json()
-        const sortedTrendingResults = data.results.sort((a, b) => b.popularity - a.popularity)
-        //get first 6 movies that don't also appear in popular movies
-        let arr = []
-        let i = 0
-        while(arr.length < 6 && i < sortedTrendingResults.length){
-            if(!movieSet.has(sortedTrendingResults[i].id)){
-                arr.push(sortedTrendingResults[i])
+        const popularResponse = await fetch(`https://api.themoviedb.org/3/movie/popular`, {headers})
+        if(popularResponse.ok){
+            const data = await popularResponse.json()
+            const sortedPopularResults = data.results.sort((a, b) => b.popularity - a.popularity).slice(0, 6)
+            for(const movie of sortedPopularResults){
+                movieSet.add(movie.id)
             }
-            i++
+            resObject['popular_data'] = sortedPopularResults
+        } else {
+            resObject['popular_data'] = []
         }
 
-        resObject['trending_data'] = arr
-    }
+        const trendingResponse = await fetch(`https://api.themoviedb.org/3/trending/movie/day`, {headers})
+        if(trendingResponse.ok){
+            const data = await trendingResponse.json()
+            const sortedTrendingResults = data.results.sort((a, b) => b.popularity - a.popularity)
+            //get first 6 movies that don't also appear in popular movies
+            let arr = []
+            let i = 0
+            while(arr.length < 6 && i < sortedTrendingResults.length){
+                if(!movieSet.has(sortedTrendingResults[i].id)){
+                    arr.push(sortedTrendingResults[i])
+                }
+                i++
+            }
 
-    //get reviews and lists for home page display
-    const review_ids = ['67cb27d8c25238a0f6ee09c1', '67cb36cfec0afa0e72d98c39', '67cb3887ec0afa0e72d98cf2']
-    const list_ids = ['67cb3336ec0afa0e72d98942', '67cb37d2ec0afa0e72d98c56', '67cb38d1ec0afa0e72d98d0f']
-    const reviews = [], lists = []
-    for(const review_id of review_ids){
-        const review = await Review.findById(review_id) 
-        if(review) reviews.push(review)
-    }
-    for(const list_id of list_ids){
-        const list = await List.findById(list_id)
-        if(list){
-            const fullListItems = await mapGrabMovie(list.list_items)
-            let listObject = list.toObject()
-            listObject['list_items'] = fullListItems
-            listObject['list_items_length'] = list.list_items.length
-            lists.push(listObject)
+            resObject['trending_data'] = arr
+        } else {
+            resObject['trending_data'] = []
         }
-    }
-    const fullReviews = await mapGrabMovie(reviews)
-    resObject['reviews'] = fullReviews
-    resObject['lists'] = lists
 
-    res.json(resObject)
+        //get reviews and lists for home page display
+        const review_ids = ['67cb27d8c25238a0f6ee09c1', '67cb36cfec0afa0e72d98c39', '67cb3887ec0afa0e72d98cf2']
+        const list_ids = ['67cb3336ec0afa0e72d98942', '67cb37d2ec0afa0e72d98c56', '67cb38d1ec0afa0e72d98d0f']
+        const reviews = [], lists = []
+        for(const review_id of review_ids){
+            const review = await Review.findById(review_id) 
+            if(review) reviews.push(review)
+        }
+        for(const list_id of list_ids){
+            const list = await List.findById(list_id)
+            if(list){
+                const fullListItems = await mapGrabMovie(list.list_items)
+                let listObject = list.toObject()
+                listObject['list_items'] = fullListItems
+                listObject['list_items_length'] = list.list_items.length
+                lists.push(listObject)
+            }
+        }
+        const fullReviews = await mapGrabMovie(reviews)
+        resObject['reviews'] = fullReviews
+        resObject['lists'] = lists
+
+        res.json(resObject)
+    } catch (error) {
+        console.error('Home Page Data Error:', error.message, error.cause)
+        res.status(500).json({
+            popular_data: [],
+            trending_data: [],
+            reviews: [],
+            lists: [],
+            error: error.message
+        })
+    }
 })
 
 // @desc Get director for a particular movie
