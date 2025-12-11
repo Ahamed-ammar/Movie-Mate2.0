@@ -59,7 +59,8 @@ const Navbar = () => {
                 <div className='flex justify-between items-center container mx-auto h-full'>
                     {/*Logo */}
                     <Link to={'/'} className='flex items-center'>
-                        <img src="https://a.ltrbxd.com/logos/letterboxd-logo-h-neg-rgb.svg" alt="Logo" className="h-16" />
+                        {/* <img src="https://a.ltrbxd.com/logos/letterboxd-logo-h-neg-rgb.svg" alt="Logo" className="h-16" /> */}
+                        <h1>Movie-Mate</h1>
                     </Link>
                     
                     {/*Right Side */}
